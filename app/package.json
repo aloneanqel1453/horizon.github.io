@@ -1,0 +1,20 @@
+{
+  "name": "horizon-web",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node sync-root.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.4",
+    "three": "^0.174.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.174.0",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2"
+  }
+}

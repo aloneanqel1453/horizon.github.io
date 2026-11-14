@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0a0919" />
+  <title>Horizon 26.3 — Web Edition | Tek Sunucu Tarayıcı Oyunu</title>
+  <meta name="description" content="Horizon 26.3 Web Edition — Kurulum gerektirmeyen, tek ortak sunuculu 3D voksel tarayıcı oyunu." />
+  <meta property="og:title" content="Horizon 26.3 — Web Edition" />
+  <meta property="og:description" content="Tarayıcıdan anında girip tek ortak sunucuda oynayabileceğiniz Horizon 26.3 voksel dünyası." />
+  <meta property="og:image" content="./brand/social-preview.jpg" />
+  <link rel="icon" type="image/svg+xml" href="./brand/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./brand/favicon-32.png" />
+  <link rel="apple-touch-icon" href="./brand/apple-touch-icon.png" />
+  <style>
+    @font-face { font-family: 'Bricolage Display'; src: url('/fonts/BricolageGrotesqueDisplay-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+    @font-face { font-family: 'Bricolage'; src: url('/fonts/BricolageGrotesque-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+    @font-face { font-family: 'Geist'; src: url('/fonts/Geist-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+    @font-face { font-family: 'Geist'; src: url('/fonts/Geist-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+    @font-face { font-family: 'Geist'; src: url('/fonts/Geist-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+    @font-face { font-family: 'Geist Mono'; src: url('/fonts/GeistMono-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+    @font-face { font-family: 'Pixelify Sans'; src: url('/fonts/PixelifySans-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+  </style>
+</head>
+<body>
+  <!-- 3D WebGL World Canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Underwater / Lava / Portal / Damage Screen Tint -->
+  <div id="screen-tint"></div>
+
+  <!-- Horizon Launcher Sunset Backdrop (launcher/src/scene.rs port) -->
+  <canvas id="horizon-scene-canvas"></canvas>
+
+  <!-- MAIN LAUNCHER OVERLAY (launcher/src/glass_home.rs port — Single Default Global Server) -->
+  <div id="launcher-overlay" class="overlay-screen visible">
+    <div class="glass-shell">
+      <header class="shell-topbar">
+        <div class="brand-lockup">
+          <img src="./brand/icon.svg" alt="Horizon" class="brand-icon" />
+          <div>
+            <span class="brand-title">HORIZON</span>
+            <span class="brand-sub">Rust Edition · Vanilla 26.3 · Protokol 777</span>
+          </div>
+        </div>
+
+        <nav class="launcher-nav" aria-label="Başlatıcı Sekmeleri">
+          <button type="button" class="lnav-tab active" data-ltab="overview">Genel Bakış</button>
+          <button type="button" class="lnav-tab" data-ltab="features">Özellikler</button>
+          <button type="button" class="lnav-tab" data-ltab="patch">Yama Notları 26.3</button>
+          <button type="button" class="lnav-tab" id="lnav-settings-btn">Ayarlar</button>
+        </nav>
+
+        <div class="topbar-badges">
+          <span class="pill-badge live-pill">
+            <span id="lobby-net-dot" class="status-dot online"></span>
+            <span id="lobby-online-text">Global Sunucu Aktif</span>
+          </span>
+        </div>
+      </header>
+
+      <div class="shell-grid">
+        <section class="hero-card">
+          <div class="eyebrow-tag">RUST EDITION · VANILLA 26.3 · TEK ORTAK SUNUCU</div>
+          <h1 class="display-heading">Horizon</h1>
+          <p class="hero-desc">
+            Sunucu kurma, port açma veya IP girme ekranı yoktur. Takma adını ve karakterini seçerek herkesin aynı anda buluştuğu tek ortak <strong>Horizon Global #1</strong> dünyasına anında katıl.
+          </p>
+
+          <div class="profile-row">
+            <div class="field-group">
+              <label for="player-name-input">Oyuncu Adı</label>
+              <input id="player-name-input" type="text" maxlength="16" placeholder="Takma adın..." autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="field-group skin-group">
+              <label>Karakter Görünümü: <strong id="skin-name-label">Steve</strong></label>
+              <div id="skin-swatches" class="skin-swatches"></div>
+            </div>
+          </div>
+
+          <div class="server-lock-card">
+            <div class="server-icon-wrap">
+              <img src="./brand/mark-dark.svg" alt="Server" />
+            </div>
+            <div class="server-meta">
+              <div class="server-name-row">
+                <span class="server-title">Horizon Global #1 — Ana Sunucu</span>
+                <span class="server-ping" id="lobby-ping-badge">Ölçülüyor...</span>
+              </div>
+              <div class="server-sub-row">
+                <span>Ortak Dünya (Seed #2026077 · Zümrüt Çayır)</span>
+                <span>·</span>
+                <span id="lobby-players-count">Çevrimiçi bağlanıyor...</span>
+              </div>
+            </div>
+            <div class="server-auto-tag">VARSAYILAN</div>
+          </div>
+
+          <div class="cta-row">
+            <button id="play-btn" class="btn-primary-play" type="button">
+              <span class="play-triangle">▶</span>
+              <span>SUNUCUYA KATIL &amp; OYNA</span>
+            </button>
+            <button id="open-settings-btn" class="btn-glass-secondary" type="button" title="Horizon Ayarları">
+              Ayarlar
+            </button>
+          </div>
+        </section>
+
+        <aside class="info-card">
+          <!-- Tab 1: Overview & Controls -->
+          <div id="ltab-overview" class="ltab-pane">
+            <h2 class="panel-title">Kontroller &amp; Kısayollar</h2>
+            <div class="keybind-list">
+              <div class="kb-row"><span>Hareket / Koşu</span><span><kbd>W A S D</kbd> + <kbd>Ctrl</kbd></span></div>
+              <div class="kb-row"><span>Zıpla / Yüz / Uçuş</span><span><kbd>Space</kbd></span></div>
+              <div class="kb-row"><span>Eğil (Kenar Koruması)</span><span><kbd>Shift</kbd></span></div>
+              <div class="kb-row"><span>Saldır &amp; Kır / Kullan &amp; Koy</span><span><kbd>Sol</kbd> / <kbd>Sağ Tık</kbd></span></div>
+              <div class="kb-row"><span>Envanter, Zırh &amp; Üretim</span><span><kbd>E</kbd></span></div>
+              <div class="kb-row"><span>İkincil El Değiştir / Eşya At</span><span><kbd>F</kbd> / <kbd>Q</kbd></span></div>
+              <div class="kb-row"><span>Tensura Top 50 &amp; Ciel Menüsü</span><span><kbd>K</kbd> / <kbd>B</kbd></span></div>
+              <div class="kb-row"><span>Nihai Güç / İkincil / Değiştir</span><span><kbd>R</kbd> / <kbd>X</kbd> / <kbd>Z</kbd></span></div>
+              <div class="kb-row"><span>Canlıya İsim Ver / Balçık Formu</span><span><kbd>N</kbd> / <kbd>V</kbd></span></div>
+              <div class="kb-row"><span>Sohbet &amp; Komut Konsolu</span><span><kbd>T</kbd> veya <kbd>/</kbd></span></div>
+              <div class="kb-row"><span>Oyuncu Listesi / Oyun Modu</span><span><kbd>Tab</kbd> / <kbd>F4</kbd></span></div>
+              <div class="kb-row"><span>HUD Gizle / Debug / Kamera</span><span><kbd>F1</kbd> / <kbd>F3</kbd> / <kbd>F5</kbd></span></div>
+            </div>
+            <div class="feature-note">
+              <div class="fn-dot"></div>
+              <p>Ultra-hafif Zümrüt Çayır (#2026077) yaşam alanı, Rimuru Evi, Veldora Kristal Köşesi, Binek Çiti, <strong>Tensura: Reincarnated + Büyük Bilge RPG</strong> sistemi ve sıfır-takılmalı WebGL2 motoru canlı senkronize çalışır.</p>
+            </div>
+          </div>
+
+          <!-- Tab 2: Horizon Engine Features -->
+          <div id="ltab-features" class="ltab-pane hidden">
+            <h2 class="panel-title">Horizon 26.3 &amp; Tensura RPG</h2>
+            <div class="feature-bullet-list">
+              <div class="fb-item">
+                <strong>Tensura: Reincarnated &amp; Büyük Bilge (Raphael / Ciel)</strong>
+                <span>Mavi Balçık (Rimuru) olarak başlayın, Avcı (Predator) ile yaratık yeteneklerini özümseyin, Büyük Bilge ile konuşun, dostlarınıza isim verin ve Gerçek Ejderha'ya evrimleşin!</span>
+              </div>
+              <div class="fb-item">
+                <strong>Sıfır Kasma · Ultra-Hafif Zümrüt Çayır &amp; Gerçek Ağ Gecikmesi</strong>
+                <span>Gereksiz yeraltı ve yaprak yükünden arındırılmış ultra-akıcı Zümrüt Çayır (#2026077) dünyası, sıfır-gecikmeli WebGL2 kare hızı ve gerçek ms ölçümü.</span>
+              </div>
+              <div class="fb-item">
+                <strong>3 Boyut, PC/Mobil Tam Uyum &amp; 26.3 Silahları</strong>
+                <span>Gürz (Mace), Mızrak (Spear), Üçlü Mızrak (Trident), Rüzgar Yükü, Büyü Masası, Örs, Binekler, Petler ve PC/Android/iOS tam dokunmatik kontrol.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Patch Notes 26.3 -->
+          <div id="ltab-patch" class="ltab-pane hidden">
+            <h2 class="panel-title">Yama Notları — Sürüm 26.3</h2>
+            <div class="feature-bullet-list">
+              <div class="fb-item">
+                <strong>Mobil, Tablet &amp; Hibrit Dokunmatik Desteği</strong>
+                <span>100dvh yatay/dikey uyumlu arayüz, çoklu dokunma (multi-touch), tarayıcı kaydırma/zoom kilidi ve dokunmatik envanter modları eklendi.</span>
+              </div>
+              <div class="fb-item">
+                <strong>26.3 Gürz, Mızrak, Üçlü Mızrak &amp; Rüzgar Yükü</strong>
+                <span>Rüzgar Yükü + Gürz yüksekten ezici darbe kombosu, Mızrak koşu/binek hücumu, Sadakat dönüşlü Üçlü Mızrak ve Büyü Masası / Örs onarımı eklendi.</span>
+              </div>
+              <div class="fb-item">
+                <strong>Akışkan Su/Lav, Golemler, Kamp Ateşi &amp; Müzik Kutusu</strong>
+                <span>Obsidyen/Kırıktaş jeneratörleri, Sünger emilimi, Demir/Kar/Bakır Golem inşası, Kamp Ateşi et pişirme, Kazan ve Horizon 26.3 Müzik Diski eklendi.</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTHENTIC CLEAN HORIZON IN-GAME HUD -->
+  <div id="hud" class="hidden">
+    <!-- Live Compact FPS / Real Ping / Tensura RPG Pill + Optional F3 Debug Overlay -->
+    <div class="hud-top-left">
+      <div id="live-perf-bar" class="live-perf-bar">
+        <span id="hud-fps-val" class="perf-chip fps">0 FPS</span>
+        <span id="hud-ping-val" class="perf-chip ping">-- ms</span>
+        <button id="hud-rpg-pill" class="perf-chip rpg" type="button" title="Tensura &amp; Büyük Bilge Menüsü (K)">
+          Mavi Balçık · Sv.1 · [R] Avcı
+        </button>
+        <button id="hud-fs-btn" class="perf-chip fs-btn" type="button" title="Tam Ekran (F11)">⛶</button>
+      </div>
+      <pre id="f3-panel" class="hidden"></pre>
+    </div>
+
+    <!-- Anime Voice of the World / Great Sage Notification Banner -->
+    <div id="tensura-voice-banner" class="tensura-voice-banner hidden">
+      <div id="tensura-voice-tag" class="tensura-voice-tag">« Büyük Bilge »</div>
+      <div id="tensura-voice-text" class="tensura-voice-text"></div>
+    </div>
+
+    <!-- Top Center Boss Health Bar (Ender Dragon) -->
+    <div id="boss-bar-wrap" class="boss-bar-wrap hidden">
+      <div id="boss-bar-title" class="boss-bar-title">Ender Ejderhası</div>
+      <div class="boss-bar-track">
+        <div id="boss-bar-fill" class="boss-bar-fill"></div>
+      </div>
+    </div>
+
+    <!-- Crisp Pixel Crosshair + Weapon Attack Cooldown Indicator -->
+    <div id="crosshair"></div>
+    <div id="attack-cooldown-wrap" class="attack-cooldown hidden">
+      <div id="attack-cooldown-fill"></div>
+    </div>
+
+    <!-- Classic Top-Center TAB Multiplayer Player List -->
+    <div id="tab-list" class="hidden">
+      <div class="tab-header">
+        <strong>Horizon Global #1</strong>
+        <span id="tab-subtitle">26.3 · Protokol 777</span>
+      </div>
+      <div id="tab-rows" class="tab-rows"></div>
+      <div class="tab-footer">Ortak Dünya · Seed #2026077 (Zümrüt Çayır · Jura Tempest)</div>
+    </div>
+
+    <!-- Multiplayer Chat & Command Console -->
+    <div class="chat-container">
+      <div id="chat-messages" class="chat-messages"></div>
+      <div id="chat-input-wrap" class="chat-input-wrap hidden">
+        <input id="chat-input" type="text" maxlength="180" enterkeyhint="send" placeholder="Mesaj veya komut (/bilge, /evrim, /isim, /spawn, /nether, /end)..." autocomplete="off" />
+        <button id="chat-send-btn" class="chat-action-btn" type="button">Gönder</button>
+        <button id="chat-close-btn" class="chat-action-btn secondary" type="button" title="Kapat">✕</button>
+      </div>
+    </div>
+
+    <!-- MOBILE & TABLET MULTI-TOUCH CONTROLS (Auto-enabled on Touch Devices) -->
+    <div id="mobile-controls" class="mobile-controls hidden" aria-label="Dokunmatik Kontroller">
+      <!-- Right-Half Smooth Touch Camera Look Zone (PointerLockControls Alternative) -->
+      <div id="mobile-look-zone" class="mobile-look-zone"></div>
+
+      <!-- Top-Right Compact Mobile Utility Bar -->
+      <div id="mobile-top-bar" class="mobile-top-bar">
+        <button id="mob-btn-rpg" class="mob-util-btn rpg-accent" type="button" title="Tensura &amp; Büyük Bilge (K)">Bilge</button>
+        <button id="mob-btn-inv" class="mob-util-btn" type="button" title="Envanter &amp; Üretim">Çanta</button>
+        <button id="mob-btn-swap" class="mob-util-btn" type="button" title="İkincil El Değiştir (F)">⇄ El</button>
+        <button id="mob-btn-drop" class="mob-util-btn" type="button" title="Eşya At (Q)">At</button>
+        <button id="mob-btn-chat" class="mob-util-btn" type="button" title="Sohbet &amp; Komut">Sohbet</button>
+        <button id="mob-btn-mode" class="mob-util-btn" type="button" title="Hayatta Kalma / Yaratıcı">Mod</button>
+        <button id="mob-btn-cam" class="mob-util-btn" type="button" title="Kamera Açısı">Kamera</button>
+        <button id="mob-btn-fs" class="mob-util-btn" type="button" title="Tam Ekran &amp; Yatay Kilitle">⛶</button>
+        <button id="mob-btn-pause" class="mob-util-btn" type="button" title="Oyun Menüsü">☰</button>
+      </div>
+
+      <!-- Bottom-Left Zero-Dependency Virtual Analog Joystick -->
+      <div id="mobile-joystick-zone" class="mobile-joystick-zone">
+        <div id="mobile-joystick-base" class="mobile-joystick-base">
+          <span class="joy-tick joy-n"></span>
+          <span class="joy-tick joy-s"></span>
+          <span class="joy-tick joy-e"></span>
+          <span class="joy-tick joy-w"></span>
+          <div id="mobile-joystick-knob" class="mobile-joystick-knob"></div>
+        </div>
+      </div>
+
+      <!-- Bottom-Right Semi-Transparent Action Buttons (Zıpla, Kır, Koy, Eğil, Yetenek) -->
+      <div id="mobile-action-cluster" class="mobile-action-cluster">
+        <button id="mob-btn-skill" class="mob-action-btn mob-btn-skill" type="button">
+          <span id="mob-skill-title" class="mob-btn-title">AVCI</span>
+          <span class="mob-btn-sub">Yetenek</span>
+        </button>
+        <button id="mob-btn-break" class="mob-action-btn mob-btn-break" type="button">
+          <span class="mob-btn-title">KIR</span>
+          <span class="mob-btn-sub">Vur / Kaz</span>
+        </button>
+        <button id="mob-btn-place" class="mob-action-btn mob-btn-place" type="button">
+          <span id="mob-place-title" class="mob-btn-title">KOY</span>
+          <span id="mob-place-sub" class="mob-btn-sub">Kullan</span>
+        </button>
+        <button id="mob-btn-crouch" class="mob-action-btn mob-btn-crouch" type="button">
+          <span id="mob-crouch-title" class="mob-btn-title">EĞİL</span>
+        </button>
+        <button id="mob-btn-jump" class="mob-action-btn mob-btn-jump" type="button">
+          <span class="mob-btn-title">ZIPLA</span>
+          <span class="mob-btn-sub">Yüz / Uç</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Directional Audio Subtitles Box (Bottom-Right, Horizon / Vanilla style) -->
+    <div id="subtitles-box" class="subtitles-box hidden"></div>
+
+    <!-- AUTHENTIC VANILLA / HORIZON PIXEL BOTTOM HUD -->
+    <div class="hud-bottom">
+      <div id="hotbar-tooltip" class="hotbar-tooltip"></div>
+
+      <!-- Armor & Air Row (shown when >0 armor or underwater) -->
+      <div class="vitals-row aux-vitals-row">
+        <div id="armor-bar" class="pixel-stat-row hidden"></div>
+        <div id="air-bar" class="pixel-stat-row hidden"></div>
+      </div>
+
+      <!-- Hearts & Hunger Drumsticks Row -->
+      <div id="survival-vitals" class="vitals-row">
+        <div id="hearts-bar" class="pixel-stat-row"></div>
+        <div id="hunger-bar" class="pixel-stat-row"></div>
+      </div>
+
+      <!-- Segmented Green XP Bar + Level Number + Horizon Locator Pips -->
+      <div class="xp-bar-container">
+        <span id="xp-level-num" class="xp-level-num hidden">0</span>
+        <div class="xp-bar-track">
+          <div id="xp-bar-fill" class="xp-bar-fill"></div>
+          <div id="locator-pips" class="locator-pips"></div>
+        </div>
+      </div>
+
+      <!-- Offhand Slot (F) + Classic Beveled Stone-Gray 9-Slot Pixel Hotbar -->
+      <div class="hotbar-row-wrap">
+        <div id="offhand-hud-wrap" class="offhand-hud-wrap hidden" title="İkincil El (F)"></div>
+        <div id="hotbar" class="mc-hotbar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING DRAGGED CURSOR STACK (Inventory Drag/Split) -->
+  <div id="cursor-item" class="cursor-item hidden">
+    <img id="cursor-item-img" alt="" />
+    <span id="cursor-item-count" class="slot-count"></span>
+  </div>
+
+  <!-- UNIFIED INVENTORY, ARMOR, OFFHAND, CRAFTING, FURNACE, CHEST & CREATIVE CATALOG MODAL (E / Right-Click) -->
+  <div id="inventory-modal" class="modal-backdrop hidden">
+    <div class="inventory-window">
+      <div class="inv-header">
+        <div class="inv-tabs">
+          <button id="tab-btn-craft" class="inv-tab active" type="button">Üretim (Crafting)</button>
+          <button id="tab-btn-furnace" class="inv-tab hidden" type="button">Fırın (Eritme)</button>
+          <button id="tab-btn-chest" class="inv-tab hidden" type="button">Sandık</button>
+          <button id="tab-btn-trade" class="inv-tab hidden" type="button">Köylü Takası</button>
+          <button id="tab-btn-catalog" class="inv-tab hidden" type="button">Yaratıcı Kataloğu</button>
+        </div>
+        <div class="inv-header-actions">
+          <input id="inv-search" class="hidden" type="text" placeholder="Blok veya eşya ara..." autocomplete="off" />
+          <button id="inv-fs-btn" class="btn-icon-fs" type="button" title="Tam Ekran">⛶</button>
+          <button id="inv-close-btn" class="btn-icon-close" type="button" title="Kapat (Esc)">✕</button>
+        </div>
+      </div>
+
+      <div class="inv-body-split">
+        <div class="inv-pane-left">
+          <!-- Pocket / Bedrock Recipe Category Filter Bar -->
+          <div id="inv-craft-filters" class="inv-craft-filters">
+            <button type="button" class="craft-filter-btn active" data-cfilter="all">Tümü</button>
+            <button type="button" class="craft-filter-btn" data-cfilter="craftable">Üretilebilir</button>
+            <button type="button" class="craft-filter-btn" data-cfilter="gear">Alet &amp; Zırh</button>
+            <button type="button" class="craft-filter-btn" data-cfilter="blocks">Blok &amp; Eşya</button>
+          </div>
+
+          <!-- Crafting / Furnace / Chest / Trade Dynamic Panel -->
+          <div id="inv-station-panel" class="inv-station-panel"></div>
+
+          <!-- Creative Item Catalog Grid (Creative Mode Only) -->
+          <div id="inv-grid" class="inv-grid hidden"></div>
+        </div>
+
+        <div class="inv-pane-right">
+          <!-- Equipment Row: 4 Armor Slots + Offhand Slot -->
+          <div class="inv-equip-bar">
+            <div class="inv-equip-slots-row">
+              <div class="inv-equip-group">
+                <span class="inv-mini-label">Zırh (<span id="inv-armor-label">0 Zırh</span>)</span>
+                <div id="armor-slots-grid" class="mc-armor-grid"></div>
+              </div>
+              <div class="inv-equip-group">
+                <span class="inv-mini-label">İkincil El (<kbd>F</kbd>)</span>
+                <div id="modal-offhand-wrap" class="mc-single-slot-wrap"></div>
+              </div>
+            </div>
+            <div class="inv-equip-hint" id="inv-desktop-hint">
+              Sol Tık: Al / Koy / Birleştir · Sağ Tık: Yarıya Böl / 1 Bırak · Shift+Tık: Hızlı Kuşan / Aktar
+            </div>
+            <div id="inv-touch-bar" class="inv-touch-bar hidden">
+              <div class="inv-touch-modes">
+                <button type="button" class="inv-tmode-btn active" data-tmode="normal">Al / Koy</button>
+                <button type="button" class="inv-tmode-btn" data-tmode="quick">Hızlı Kuşan</button>
+                <button type="button" class="inv-tmode-btn" data-tmode="split">Yarıya Böl</button>
+              </div>
+              <div id="inv-touch-held" class="inv-touch-held">Elde: Yok</div>
+            </div>
+          </div>
+
+          <!-- Player Backpack (27 Slots) + Hotbar Mirror -->
+          <div class="inv-player-section">
+            <div class="inv-section-label">Sırt Çantası (27 Yuva) &amp; Araç Çubuğu</div>
+            <div id="backpack-grid" class="mc-slot-grid"></div>
+            <div id="modal-hotbar-grid" class="mc-slot-grid modal-hotbar-row"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEATH / RESPAWN SCREEN -->
+  <div id="death-modal" class="modal-backdrop death-backdrop hidden">
+    <div class="death-window">
+      <h2>Öldünüz!</h2>
+      <p id="death-reason">Yüksekten düştünüz.</p>
+      <button id="respawn-btn" class="btn-primary-play" type="button">▶ Yeniden Doğ</button>
+    </div>
+  </div>
+
+  <!-- HORIZON PAUSE MENU MODAL (ESC — matches multiplayer-pause.png) -->
+  <div id="pause-modal" class="modal-backdrop hidden">
+    <div class="pause-menu-box">
+      <h3 class="pause-menu-title">Oyun Menüsü</h3>
+      <p id="pause-server-status" class="pause-menu-sub">Horizon Global #1 — Çevrimiçi Bağlı</p>
+
+      <div class="mc-menu-stack">
+        <button id="resume-btn" class="mc-menu-btn primary" type="button">Oyuna Dön</button>
+        <div class="mc-menu-row">
+          <button id="pause-inv-btn" class="mc-menu-btn" type="button">Envanter &amp; Üretim (E)</button>
+          <button id="spawn-tp-btn" class="mc-menu-btn" type="button">Köy Meydanı (Spawn)</button>
+        </div>
+        <div class="mc-menu-row">
+          <button id="pause-gamemode-btn" class="mc-menu-btn" type="button">Mod: Hayatta Kalma (F4)</button>
+          <button id="pause-settings-btn" class="mc-menu-btn" type="button">Ayarlar...</button>
+        </div>
+        <button id="pause-fs-btn" class="mc-menu-btn" type="button">Tam Ekran &amp; Tarayıcı Kısayol Kilidi: Açık</button>
+        <button id="back-title-btn" class="mc-menu-btn danger" type="button">Ana Ekrana Dön</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HORIZON SETTINGS MODAL (matches settings-graphics.png dark-violet #6b4bff UI) -->
+  <div id="settings-modal" class="modal-backdrop hidden">
+    <div class="settings-window">
+      <div class="settings-header">
+        <div class="brand-lockup">
+          <img src="./brand/icon.svg" alt="Horizon" class="pause-logo" />
+          <div>
+            <h3>Horizon Ayarlar</h3>
+            <p>Grafik, Ses, Kontroller ve Dünya Seçenekleri</p>
+          </div>
+        </div>
+        <div class="settings-tabs">
+          <button type="button" class="stab-btn active" data-stab="graphics">Grafik</button>
+          <button type="button" class="stab-btn" data-stab="audio">Ses &amp; Oynanış</button>
+          <button type="button" class="stab-btn" data-stab="controls">Kontroller</button>
+        </div>
+      </div>
+
+      <!-- Tab: Graphics -->
+      <div id="stab-graphics" class="stab-pane">
+        <div class="setting-row">
+          <label>Görüş Mesafesi (Chunk): <strong id="val-render-dist">4</strong></label>
+          <input id="opt-render-dist" type="range" min="2" max="8" step="1" value="4" />
+        </div>
+        <div class="setting-row">
+          <label>Bakış Açısı (FOV): <strong id="val-fov">78°</strong></label>
+          <input id="opt-fov" type="range" min="60" max="110" step="1" value="78" />
+        </div>
+        <div class="setting-row quick-time-row">
+          <span>Çözünürlük &amp; FPS Modu:</span>
+          <div class="quick-btn-group">
+            <button data-perf="turbo" class="btn-chip active" type="button">Ultra Akıcı</button>
+            <button data-perf="auto" class="btn-chip" type="button">Otomatik</button>
+            <button data-perf="perf" class="btn-chip" type="button">Maks. Performans</button>
+            <button data-perf="high" class="btn-chip" type="button">Yüksek Kalite</button>
+          </div>
+        </div>
+        <div class="setting-row quick-time-row">
+          <span>Dünya Zamanı:</span>
+          <div class="quick-btn-group">
+            <button data-time="0.25" class="btn-chip" type="button">Gündüz</button>
+            <button data-time="0.51" class="btn-chip" type="button">Gün Batımı</button>
+            <button data-time="0.78" class="btn-chip" type="button">Gece</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Audio & Gameplay -->
+      <div id="stab-audio" class="stab-pane hidden">
+        <div class="setting-row">
+          <label>Ana Ses &amp; Efekt Seviyesi: <strong id="val-vol">70%</strong></label>
+          <input id="opt-vol" type="range" min="0" max="100" step="5" value="70" />
+        </div>
+        <div class="setting-row">
+          <label>Fare / Dokunmatik Hassasiyet: <strong id="val-sens">100%</strong></label>
+          <input id="opt-sens" type="range" min="30" max="200" step="5" value="100" />
+        </div>
+        <div class="setting-row quick-time-row">
+          <span>Yönlü Ses Altyazıları:</span>
+          <button id="opt-subtitles-btn" class="btn-chip active" type="button">Açık</button>
+        </div>
+      </div>
+
+      <!-- Tab: Controls -->
+      <div id="stab-controls" class="stab-pane hidden">
+        <div class="setting-row">
+          <label>Mobil Tuş &amp; Joystick Boyutu: <strong id="val-mob-scale">100%</strong></label>
+          <input id="opt-mob-scale" type="range" min="85" max="130" step="5" value="100" />
+        </div>
+        <div class="setting-row quick-time-row">
+          <span>Masaüstü Koşu &amp; Kısayol Koruması:</span>
+          <div class="quick-btn-group">
+            <button id="opt-sprint-mode" class="btn-chip active" type="button">Koşu: Yapışkan (Ctrl/C)</button>
+            <button id="opt-autofs-lock" class="btn-chip active" type="button">Oto Tam Ekran Kilidi: Açık</button>
+          </div>
+        </div>
+        <div class="setting-row quick-time-row">
+          <span>Mobil Dokunmatik Yardımcılar:</span>
+          <div class="quick-btn-group">
+            <button id="opt-mob-autojump" class="btn-chip active" type="button">Oto-Zıpla: Açık</button>
+            <button id="opt-mob-lefthand" class="btn-chip" type="button">Solak Düzen: Kapalı</button>
+          </div>
+        </div>
+        <div class="keybind-list compact-kb">
+          <div class="kb-row"><span>Yürüme &amp; Koşu</span><span><kbd>W A S D</kbd> + <kbd>Ctrl</kbd> / <kbd>C</kbd> / <kbd>CapsLock</kbd></span></div>
+          <div class="kb-row"><span>Zıplama / Elitra Süzülüş / Çift Space Uçuş</span><span><kbd>Space</kbd></span></div>
+          <div class="kb-row"><span>Eğilme &amp; Kenar Koruması</span><span><kbd>Shift</kbd></span></div>
+          <div class="kb-row"><span>Envanter, Zırh &amp; Üretim</span><span><kbd>E</kbd></span></div>
+          <div class="kb-row"><span>İkincil El (Offhand) Değiştir</span><span><kbd>F</kbd></span></div>
+          <div class="kb-row"><span>Eşya At (1 Adet / Tüm Yığın)</span><span><kbd>Q</kbd> / <kbd>Ctrl+Q</kbd></span></div>
+          <div class="kb-row"><span>Hayatta Kalma / Yaratıcı Mod</span><span><kbd>F4</kbd></span></div>
+          <div class="kb-row"><span>Sinematik HUD / Debug / Kamera</span><span><kbd>F1</kbd> / <kbd>F3</kbd> / <kbd>F5</kbd></span></div>
+          <div class="kb-row"><span>Fare Hassasiyeti / Dokunmatik Bakış</span><span><kbd>Fare</kbd> / <kbd>Sağ Ekran Kaydır</kbd></span></div>
+          <div class="kb-row"><span>Mobil Hareket &amp; Koşu</span><span><kbd>Sol Alt Sanal Joystick</kbd></span></div>
+          <div class="kb-row"><span>Mobil Eylemler (Zıpla / Kır / Koy / Eğil)</span><span><kbd>Sağ Alt Dokunmatik Tuşlar</kbd></span></div>
+          <div class="kb-row"><span>Sohbet / Komut / Oyuncu Listesi</span><span><kbd>T</kbd> / <kbd>/</kbd> / <kbd>Tab</kbd></span></div>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button id="settings-done-btn" class="btn-primary-play" type="button">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TENSURA: ULTIMATE TOP 50 CHARACTERS, 16 REAL POWERS & LOYAL TEMPEST ARMY MODAL (K / B) -->
+  <div id="tensura-modal" class="modal-backdrop hidden">
+    <div class="tensura-window">
+      <div class="tensura-header">
+        <div>
+          <span id="tensura-sage-badge" class="tensura-sage-badge">« Manas: Ciel · Jura Tempest Federasyonu »</span>
+          <h2 id="tensura-title-text" class="tensura-title">#1 Rimuru Tempest — Kaos Yaratıcısı</h2>
+        </div>
+        <button id="tensura-close-btn" class="btn-icon-close" type="button" title="Kapat (K / Esc)">✕</button>
+      </div>
+
+      <div class="tensura-stats-grid">
+        <div class="tensura-stat-box">
+          <span class="ts-label">Seviye &amp; Varlık Değeri (EP)</span>
+          <strong id="ts-ep-val">Sv. 992 · 120,000,000 EP</strong>
+        </div>
+        <div class="tensura-stat-box">
+          <span class="ts-label">Büyü Özü (Magicule)</span>
+          <strong id="ts-mp-val">2000 / 2000 Öz</strong>
+          <div class="ts-bar"><div id="ts-mp-fill" class="ts-bar-fill"></div></div>
+        </div>
+        <div class="tensura-stat-box">
+          <span class="ts-label">Sadık Tempest Ordusu &amp; Bonuslar</span>
+          <strong id="ts-bonus-val">0 Dost · +20 Zırh · +28 Güç · Uçuş</strong>
+        </div>
+      </div>
+
+      <div class="tensura-actions-row">
+        <button id="tensura-mimic-btn" class="btn-glass-secondary" type="button">[V] Mavi Balçık / İnsan Formu</button>
+        <input id="tensura-custom-name" class="ts-inline-input" type="text" maxlength="18" placeholder="Dost adı (boşsa Ranga/Diablo...)" autocomplete="off" />
+        <button id="tensura-name-btn" class="btn-primary-play compact" type="button">[N] Baktığın Canlıya İsim Ver (Dost Yap)</button>
+        <button id="tensura-summon-ally-btn" class="btn-glass-secondary" type="button">Sadık Tempest Muhafızı Çağır</button>
+      </div>
+
+      <div class="tensura-nav-tabs" role="tablist">
+        <button type="button" class="ts-tab-btn active" data-ttab="chars">Top 50 Karakter Dönüşümü (50)</button>
+        <button type="button" class="ts-tab-btn" data-ttab="skills">16 Gerçek Nihai Güç (<kbd>R</kbd> / <kbd>X</kbd> / <kbd>Z</kbd>)</button>
+        <button type="button" class="ts-tab-btn" data-ttab="sage">Manas: Ciel Rehberi</button>
+      </div>
+
+      <!-- Pane 1: Top 50 Strongest Tensura & Jura Tempest Characters -->
+      <div id="ttab-chars" class="ts-tab-pane">
+        <div class="ts-filter-bar">
+          <input id="tensura-char-search" class="ts-search-input" type="text" maxlength="40" placeholder="Top 50 karakter ara (Rimuru, Diablo, Zegion, Benimaru, Shion, Milim, Guy, Veldora, Chloe, Ranga...)" autocomplete="off" />
+          <div id="tensura-faction-chips" class="ts-faction-chips">
+            <button type="button" class="btn-chip active" data-faction="all">Tümü (50)</button>
+            <button type="button" class="btn-chip" data-faction="tempest">Jura Tempest</button>
+            <button type="button" class="btn-chip" data-faction="dragon">Gerçek Ejderhalar</button>
+            <button type="button" class="btn-chip" data-faction="octagram">Octagram Lordları</button>
+            <button type="button" class="btn-chip" data-faction="awakened">Kahraman &amp; Melekler</button>
+          </div>
+        </div>
+        <div id="tensura-char-grid" class="tensura-char-grid"></div>
+      </div>
+
+      <!-- Pane 2: 16 Canonical Ultimate Skills -->
+      <div id="ttab-skills" class="ts-tab-pane hidden">
+        <p class="ts-pane-hint">Tüm 16 gerçek Nihai Güç açıktır! Seçtiğiniz gücü <kbd>R</kbd> (veya mobilde <strong>Öz</strong> tuşu) ile ateşleyin, <kbd>X</kbd> ile karakterinizin ikincil imza gücünü kullanın, <kbd>Z</kbd> ile sıradaki güce geçin.</p>
+        <div id="tensura-skill-list" class="tensura-skill-list"></div>
+      </div>
+
+      <!-- Pane 3: Manas Ciel Interactive Console -->
+      <div id="ttab-sage" class="ts-tab-pane hidden">
+        <h3 class="ts-sec-title">Tanrısal Çekirdek: <span id="sage-panel-name">Manas: Ciel</span> ile Konuş</h3>
+        <div id="sage-quick-chips" class="sage-quick-chips">
+          <button type="button" class="btn-chip" data-q="Durumum ve aktif karakterim nedir?">Durum Raporu</button>
+          <button type="button" class="btn-chip" data-q="Hedefimdeki canlıyı analiz et">Hedef Analizi</button>
+          <button type="button" class="btn-chip" data-q="İsim verdiğim dostlar nasıl savaşır?">Sadık Dost Ordusu</button>
+          <button type="button" class="btn-chip" data-q="Top 50 karakter dönüşümü nasıl çalışır?">Top 50 Dönüşüm</button>
+          <button type="button" class="btn-chip" data-q="Zaman durdurma ve nihai güçler neler?">16 Nihai Güç</button>
+        </div>
+        <div id="sage-log" class="sage-log"></div>
+        <div class="sage-input-row">
+          <input id="sage-input" type="text" maxlength="140" placeholder="Manas: Ciel'e bir soru sor..." autocomplete="off" />
+          <button id="sage-ask-btn" class="chat-action-btn" type="button">Sor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
